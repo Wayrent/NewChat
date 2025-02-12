@@ -1,5 +1,5 @@
-// Подключение к серверу через Socket.IO
-const socket = io({ withCredentials: true }); // Добавляем параметр для передачи cookies
+// Глобальная переменная для сокета
+let socket = null;
 
 // Получаем элементы DOM
 const registerContainer = document.getElementById('register-container');
@@ -35,9 +35,14 @@ async function checkAuth() {
             registerContainer.style.display = 'none';
             chatContainer.style.display = 'block';
 
-            // Подключаемся к чату
-            socket.connect();
-            socket.emit('setUsername', data.username); // Устанавливаем имя пользователя для сокета
+            // Инициализируем сокет только если он ещё не создан
+            if (!socket) {
+                socket = io({ withCredentials: true }); // Добавляем параметр для передачи cookies
+                setupSocketListeners(socket); // Настройка слушателей событий
+            }
+
+            // Устанавливаем имя пользователя для сокета
+            socket.emit('setUsername', data.username);
         } else {
             // Если пользователь не авторизован, показываем форму входа
             loginContainer.style.display = 'flex';
@@ -85,44 +90,45 @@ function addSystemMessage(message) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// Получение предыдущих сообщений
-socket.on('previousMessages', (messages) => {
-    // Очищаем множество отображённых сообщений перед добавлением старых
-    displayedMessages.clear();
+// Настройка слушателей событий для сокета
+function setupSocketListeners(socket) {
+    // Получение предыдущих сообщений
+    socket.on('previousMessages', (messages) => {
+        console.log('Получены старые сообщения:', messages); // Логируем старые сообщения
+        displayedMessages.clear();
 
-    // Добавляем старые сообщения
-    messages.forEach(addMessage);
+        messages.forEach(addMessage);
 
-    // Устанавливаем временную метку последнего сообщения из истории
-    if (messages.length > 0) {
-        lastReceivedTimestamp = new Date(messages[messages.length - 1].createdAt).getTime();
-    } else {
-        lastReceivedTimestamp = null; // Если сообщений нет
-    }
-});
+        // Устанавливаем временную метку последнего сообщения из истории
+        if (messages.length > 0) {
+            lastReceivedTimestamp = new Date(messages[messages.length - 1].createdAt).getTime();
+        } else {
+            lastReceivedTimestamp = null; // Если сообщений нет
+        }
+    });
 
-// Получение нового сообщения
-socket.on('receiveMessage', (message) => {
-    // Преобразуем временную метку сообщения в миллисекунды
-    const messageTimestamp = new Date(message.createdAt).getTime();
+    // Получение нового сообщения
+    socket.on('receiveMessage', (message) => {
+        console.log('Получено новое сообщение:', message); // Логируем новое сообщение
+        const messageTimestamp = new Date(message.createdAt).getTime();
 
-    // Игнорируем сообщения, которые уже были добавлены через previousMessages
-    if (lastReceivedTimestamp === null || messageTimestamp > lastReceivedTimestamp) {
-        addMessage(message);
-    } else {
-        console.warn('Игнорируем дублирующееся сообщение:', message);
-    }
-});
+        if (lastReceivedTimestamp === null || messageTimestamp > lastReceivedTimestamp) {
+            addMessage(message);
+        } else {
+            console.warn('Игнорируем дублирующееся сообщение:', message); // Логируем игнорируемые сообщения
+        }
+    });
 
-// Обработка входа нового пользователя
-socket.on('userJoined', (data) => {
-    addSystemMessage(data.message); // Добавляем только системное сообщение
-});
+    // Обработка входа нового пользователя
+    socket.on('userJoined', (data) => {
+        addSystemMessage(data.message); // Добавляем только системное сообщение
+    });
 
-// Обработка выхода пользователя
-socket.on('userLeft', (data) => {
-    addSystemMessage(data.message); // Добавляем только системное сообщение
-});
+    // Обработка выхода пользователя
+    socket.on('userLeft', (data) => {
+        addSystemMessage(data.message); // Добавляем только системное сообщение
+    });
+}
 
 // Регистрация пользователя
 registerForm.addEventListener('submit', async (e) => {
@@ -192,9 +198,14 @@ loginForm.addEventListener('submit', async (e) => {
             registerContainer.style.display = 'none';
             chatContainer.style.display = 'block';
 
-            // Подключаемся к чату
-            socket.connect();
-            socket.emit('setUsername', username); // Устанавливаем имя пользователя для сокета
+            // Если сокет уже существует, не создаём новый
+            if (!socket) {
+                socket = io({ withCredentials: true }); // Добавляем параметр для передачи cookies
+                setupSocketListeners(socket); // Настройка слушателей событий
+            }
+
+            // Устанавливаем имя пользователя для сокета
+            socket.emit('setUsername', username);
         }
     } catch (error) {
         alert(`Ошибка входа: ${error.message}`);
@@ -212,11 +223,13 @@ logoutButton.addEventListener('click', async () => {
     registerContainer.style.display = 'none';
 
     // Очищаем состояние при выходе
+    if (socket) {
+        socket.disconnect(); // Отключаем сокет
+        socket = null; // Сбрасываем глобальную переменную
+    }
+
     displayedMessages.clear();
     lastReceivedTimestamp = null;
-
-    // Отключаемся от чата
-    socket.disconnect();
 });
 
 // Отправка сообщения

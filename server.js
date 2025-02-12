@@ -223,7 +223,7 @@ io.on('connection', async (socket) => {
             return;
         }
 
-        console.log(`Сохраняем сообщение: ${message.username}: ${message.text}`);
+        console.log(`Сохраняем сообщение: ${message.username}: ${message.text}`); // Логируем сохраняемое сообщение
 
         // Сохраняем сообщение в базе данных
         const result = await pool.query('INSERT INTO messages (user_id, text) VALUES ($1, $2) RETURNING id, created_at', [message.username, message.text]);
@@ -232,6 +232,7 @@ io.on('connection', async (socket) => {
 
         // Рассылаем сообщение всем подключенным клиентам
         io.emit('receiveMessage', { id: messageId, username: message.username, text: message.text, createdAt });
+        console.log('Рассылаем сообщение:', { id: messageId, username: message.username, text: message.text, createdAt }); // Логируем отправляемое сообщение
     });
 
     // Обработка отключения клиента
