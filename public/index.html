@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Простой чат</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- Страница регистрации -->
+    <div id="register-container" class="auth-container" style="display: none;">
+        <h1>Регистрация</h1>
+        <form id="register-form">
+            <input type="text" id="register-username" placeholder="Имя пользователя..." required />
+            <input type="password" id="register-password" placeholder="Пароль..." required />
+            <button type="submit" class="primary-button">Зарегистрироваться</button>
+        </form>
+        <button id="switch-to-login" class="secondary-button">Войти</button>
+    </div>
+
+    <!-- Страница входа -->
+    <div id="login-container" class="auth-container" style="display: none;">
+        <h1>Вход</h1>
+        <form id="login-form">
+            <input type="text" id="login-username" placeholder="Имя пользователя..." required />
+            <input type="password" id="login-password" placeholder="Пароль..." required />
+            <button type="submit" class="primary-button">Войти</button>
+        </form>
+        <button id="switch-to-register" class="secondary-button">Зарегистрироваться</button>
+    </div>
+
+    <!-- Страница чата (скрыта по умолчанию) -->
+    <div id="chat-container" style="display: none;">
+        <div class="chat-header">
+            <h1>Простой чат</h1>
+            <button id="logout-button" class="logout-button">
+                <i class="fas fa-times"></i> <!-- Значок крестика -->
+            </button>
+        </div>
+        <div id="messages" class="messages"></div>
+        <form id="message-form" class="message-form">
+            <input type="text" id="message-input" placeholder="Введите сообщение..." required />
+            <button type="submit" class="send-button">
+                <i class="fas fa-paper-plane"></i> <!-- Иконка самолётика -->
+            </button>
+        </form>
+    </div>
+
+    <!-- Подключение скриптов -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

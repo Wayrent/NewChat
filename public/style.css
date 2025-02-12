@@ -1,0 +1,169 @@
+/* Общие стили */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f4;
+}
+
+/* Стили для страницы аутентификации */
+.auth-container {
+    width: 400px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-container h1 {
+    margin-bottom: 20px;
+}
+
+/* Поля ввода */
+.auth-container input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+/* Кнопки */
+.auth-container button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+/* Основная кнопка (синяя) */
+.auth-container .primary-button {
+    background-color: #006783; /* Ваш выбранный цвет */
+    color: white;
+}
+
+.auth-container .primary-button:hover {
+    background-color: #004f65; /* Ваш выбранный цвет при наведении */
+}
+
+/* Вспомогательная кнопка (серая) */
+.auth-container .secondary-button {
+    background-color: #666666;
+    color: white;
+}
+
+.auth-container .secondary-button:hover {
+    background-color: #525252;
+}
+
+/* Стили для чата */
+#chat-container {
+    width: 400px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    position: relative; /* Для позиционирования кнопки выхода */
+}
+
+/* Заголовок чата */
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.chat-header h1 {
+    margin: 0;
+    font-size: 20px;
+}
+
+/* Кнопка выхода (иконка крестика) */
+.logout-button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #ff4d4d; /* Красный цвет */
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.logout-button:hover {
+    color: #ff1a1a; /* Более тёмный красный при наведении */
+}
+
+/* Поле для сообщений */
+.messages {
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+/* Форма отправки сообщения */
+.message-form {
+    display: flex;
+    align-items: center;
+}
+
+/* Поле ввода сообщения */
+#message-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 5px;
+    box-sizing: border-box;
+}
+
+/* Кнопка отправки сообщения */
+.send-button {
+    width: 40px;
+    height: 40px;
+    background: #006783; /* Ваш выбранный цвет */
+    border: none;
+    border-radius: 50%; /* Круглая кнопка */
+    color: white; /* Цвет иконки */
+    font-size: 16px; /* Размер иконки */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+}
+
+.send-button:hover {
+    background: #004f65; /* Более тёмный цвет при наведении */
+}
+
+.send-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 12px solid white; /* Треугольник белого цвета */
+}
+
+.send-button:hover {
+    background: #004f65; /* Более тёмный цвет при наведении */
+}
