@@ -194,11 +194,12 @@ loginForm.addEventListener('submit', async (e) => {
         alert(result);
 
         if (response.ok) {
+            // Показываем чат
             loginContainer.style.display = 'none';
             registerContainer.style.display = 'none';
             chatContainer.style.display = 'block';
 
-            // Если сокет уже существует, не создаём новый
+            // Если сокет ещё не создан, создаём его
             if (!socket) {
                 socket = io({ withCredentials: true }); // Добавляем параметр для передачи cookies
                 setupSocketListeners(socket); // Настройка слушателей событий
@@ -206,6 +207,11 @@ loginForm.addEventListener('submit', async (e) => {
 
             // Устанавливаем имя пользователя для сокета
             socket.emit('setUsername', username);
+
+            // Перезагружаем страницу после входа
+            setTimeout(() => {
+                location.reload(); // Автоматическая перезагрузка страницы
+            }, 500); // Задержка в 500 мс для завершения запросов
         }
     } catch (error) {
         alert(`Ошибка входа: ${error.message}`);
