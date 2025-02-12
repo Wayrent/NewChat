@@ -14,7 +14,7 @@ const logoutButton = document.getElementById('logout-button');
 
 // Скрываем все контейнеры по умолчанию
 registerContainer.style.display = 'none';
-loginContainer.style.display = 'none';
+loginContainer.style.display = 'flex'; // Форма входа показана по умолчанию
 chatContainer.style.display = 'none';
 
 // Множество для хранения ID уже отображённых сообщений
@@ -22,6 +22,19 @@ const displayedMessages = new Set();
 
 // Временная метка последнего полученного сообщения
 let lastReceivedTimestamp = null;
+
+// Переключение между формами регистрации и входа
+document.getElementById('switch-to-login').addEventListener('click', () => {
+    registerContainer.style.display = 'none';
+    loginContainer.style.display = 'flex';
+    chatContainer.style.display = 'none';
+});
+
+document.getElementById('switch-to-register').addEventListener('click', () => {
+    loginContainer.style.display = 'none';
+    registerContainer.style.display = 'flex';
+    chatContainer.style.display = 'none';
+});
 
 // Проверка авторизации при загрузке страницы
 async function checkAuth() {

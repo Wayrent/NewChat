@@ -50,22 +50,22 @@ body {
 
 /* Основная кнопка (синяя) */
 .auth-container .primary-button {
-    background-color: #006783; /* Ваш выбранный цвет */
+    background-color: #773bb8; /* Ваш выбранный цвет */
     color: white;
 }
 
 .auth-container .primary-button:hover {
-    background-color: #004f65; /* Ваш выбранный цвет при наведении */
+    background-color: #592c89; /* Ваш выбранный цвет при наведении */
 }
 
 /* Вспомогательная кнопка (серая) */
 .auth-container .secondary-button {
-    background-color: #666666;
+    background-color: #827a88;
     color: white;
 }
 
 .auth-container .secondary-button:hover {
-    background-color: #525252;
+    background-color: #746d7a;
 }
 
 /* Стили для чата */
@@ -135,7 +135,7 @@ body {
 .send-button {
     width: 40px;
     height: 40px;
-    background: #006783; /* Ваш выбранный цвет */
+    background: #773bb8; /* Ваш выбранный цвет */
     border: none;
     border-radius: 50%; /* Круглая кнопка */
     color: white; /* Цвет иконки */
@@ -148,7 +148,7 @@ body {
 }
 
 .send-button:hover {
-    background: #004f65; /* Более тёмный цвет при наведении */
+    background: #592c89; /* Более тёмный цвет при наведении */
 }
 
 .send-button::after {
@@ -165,5 +165,5 @@ body {
 }
 
 .send-button:hover {
-    background: #004f65; /* Более тёмный цвет при наведении */
+    background: #592c89; /* Более тёмный цвет при наведении */
 }
