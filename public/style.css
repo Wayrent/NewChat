@@ -52,16 +52,18 @@ body {
 .auth-container .primary-button {
     background-color: #773bb8; /* Ваш выбранный цвет */
     color: white;
+    transition: background 0.3s ease;
 }
 
 .auth-container .primary-button:hover {
-    background-color: #592c89; /* Ваш выбранный цвет при наведении */
+    background-color: #623096; /* Ваш выбранный цвет при наведении */
 }
 
 /* Вспомогательная кнопка (серая) */
 .auth-container .secondary-button {
     background-color: #827a88;
     color: white;
+    transition: background 0.3s ease;
 }
 
 .auth-container .secondary-button:hover {
