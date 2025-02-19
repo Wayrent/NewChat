@@ -24,6 +24,7 @@ body {
 
 .auth-container h1 {
     margin-bottom: 20px;
+    font-size: 24px;
 }
 
 /* Поля ввода */
@@ -46,38 +47,37 @@ body {
     cursor: pointer;
     margin-bottom: 10px;
     box-sizing: border-box;
+    transition: background 0.3s ease;
 }
 
 /* Основная кнопка (синяя) */
 .auth-container .primary-button {
     background-color: #773bb8; /* Ваш выбранный цвет */
     color: white;
-    transition: background 0.3s ease;
 }
-
 .auth-container .primary-button:hover {
-    background-color: #623096; /* Ваш выбранный цвет при наведении */
+    background-color: #623096; /* Более тёмный цвет при наведении */
 }
 
 /* Вспомогательная кнопка (серая) */
 .auth-container .secondary-button {
     background-color: #827a88;
     color: white;
-    transition: background 0.3s ease;
 }
-
 .auth-container .secondary-button:hover {
     background-color: #746d7a;
 }
 
 /* Стили для чата */
 #chat-container {
-    width: 400px;
+    width: 600px; /* Увеличиваем ширину для размещения списка собеседников */
     background: white;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    position: relative; /* Для позиционирования кнопки выхода */
+    position: relative; /* Для абсолютного позиционирования списка */
+    display: flex;
+    flex-direction: column;
 }
 
 /* Заголовок чата */
@@ -102,12 +102,68 @@ body {
     cursor: pointer;
     transition: color 0.3s ease;
 }
-
 .logout-button:hover {
     color: #ff1a1a; /* Более тёмный красный при наведении */
 }
 
-/* Поле для сообщений */
+/* Строка поиска */
+#search-container {
+    width: calc(100% - 170px); /* Ширина строки поиска */
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#search-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px;
+    box-sizing: border-box;
+}
+
+#search-button {
+    width: 40px;
+    height: 40px;
+    background: #773bb8; /* Ваш выбранный цвет */
+    border: none;
+    border-radius: 0 5px 5px 0;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+#search-button:hover {
+    background: #592c89; /* Более тёмный цвет при наведении */
+}
+
+/* Список собеседников */
+#conversations-list {
+    width: 150px; /* Ширина списка */
+    height: calc(100% - 80px); /* Высота равна высоте чата минус заголовок */
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    background: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    position: absolute; /* Размещаем список справа */
+    right: 0;
+    top: 60px; /* Отступ от заголовка чата */
+}
+
+/* Пункты списка собеседников */
+#conversations li {
+    padding: 5px;
+    cursor: pointer;
+    border-bottom: 1px solid #f4f4f4;
+    transition: background 0.3s ease;
+}
+#conversations li:hover {
+    background: #f4f4f4;
+}
+
+/* Поле для публичных сообщений */
 .messages {
     height: 300px;
     overflow-y: auto;
@@ -115,6 +171,7 @@ body {
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 5px;
+    margin-right: 170px; /* Отступ для списка собеседников */
 }
 
 /* Форма отправки сообщения */
@@ -140,32 +197,76 @@ body {
     background: #773bb8; /* Ваш выбранный цвет */
     border: none;
     border-radius: 50%; /* Круглая кнопка */
-    color: white; /* Цвет иконки */
-    font-size: 16px; /* Размер иконки */
+    color: white;
+    font-size: 16px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.3s ease;
 }
-
 .send-button:hover {
     background: #592c89; /* Более тёмный цвет при наведении */
 }
 
-.send-button::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 0;
-    height: 0;
-    border-top: 8px solid transparent;
-    border-bottom: 8px solid transparent;
-    border-left: 12px solid white; /* Треугольник белого цвета */
+/* Страница личного чата */
+#private-chat-container {
+    width: 400px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    display: none; /* Скрыто по умолчанию */
 }
 
-.send-button:hover {
-    background: #592c89; /* Более тёмный цвет при наведении */
+/* Заголовок личного чата */
+.private-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.private-chat-header h1 {
+    margin: 0;
+    font-size: 20px;
+}
+
+/* Кнопка "Назад" в личном чате */
+.back-button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #773bb8; /* Цвет кнопки "Назад" */
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+.back-button:hover {
+    color: #592c89; /* Более тёмный цвет при наведении */
+}
+
+/* Поле для личных сообщений */
+#private-messages {
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+/* Форма отправки личного сообщения */
+#private-message-form {
+    display: flex;
+    align-items: center;
+}
+
+/* Поле ввода личного сообщения */
+#private-message-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 5px;
+    box-sizing: border-box;
 }

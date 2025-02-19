@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чатик</title>
+    <title>Простой чат</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <!-- Страница регистрации -->
-    <div id="register-container" class="auth-container">
+    <div id="register-container" class="auth-container" style="display: none;">
         <h1>Регистрация</h1>
         <form id="register-form">
             <input type="text" id="register-username" placeholder="Имя пользователя..." required />
@@ -30,19 +30,50 @@
         <button id="switch-to-register" class="secondary-button">Зарегистрироваться</button>
     </div>
 
-    <!-- Страница чата -->
+    <!-- Страница публичного чата -->
     <div id="chat-container" style="display: none;">
         <div class="chat-header">
-            <h1>Чатик</h1>
+            <h1>Простой чат</h1>
             <button id="logout-button" class="logout-button">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div id="messages" class="messages"></div>
+
+        <!-- Строка поиска -->
+        <div id="search-container" style="display: flex; align-items: center; margin-bottom: 10px;">
+            <input type="text" id="search-input" placeholder="Поиск собеседника..." required />
+            <button id="search-button" class="search-button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+
+        <!-- Список собеседников -->
+        <div id="conversations-list" style="width: 150px; height: calc(100% - 80px); overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); position: absolute; right: 0; top: 60px;">
+            <h3>Ваши переписки:</h3>
+            <ul id="conversations"></ul>
+        </div>
+
+        <!-- Поле для публичных сообщений -->
+        <div id="messages" class="messages" style="margin-right: 170px;"></div>
         <form id="message-form" class="message-form">
             <input type="text" id="message-input" placeholder="Введите сообщение..." required />
             <button type="submit" class="send-button">
-                <i class="fas fa-envelope"></i>
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+
+    <!-- Страница личного чата -->
+    <div id="private-chat-container" style="display: none; width: 400px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+        <div class="private-chat-header">
+            <h1 id="recipient-name">Собеседник: None</h1>
+            <button id="back-to-public-chat" class="back-button">← Назад</button>
+        </div>
+        <div id="private-messages" class="messages"></div>
+        <form id="private-message-form" class="message-form">
+            <input type="text" id="private-message-input" placeholder="Введите сообщение..." required />
+            <button type="submit" class="send-button">
+                <i class="fas fa-paper-plane"></i>
             </button>
         </form>
     </div>
