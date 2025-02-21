@@ -55,6 +55,7 @@ body {
     background-color: #773bb8; /* Ваш выбранный цвет */
     color: white;
 }
+
 .auth-container .primary-button:hover {
     background-color: #623096; /* Более тёмный цвет при наведении */
 }
@@ -64,20 +65,22 @@ body {
     background-color: #827a88;
     color: white;
 }
+
 .auth-container .secondary-button:hover {
     background-color: #746d7a;
 }
 
 /* Стили для чата */
 #chat-container {
-    width: 600px; /* Увеличиваем ширину для размещения списка собеседников */
-    background: white;
+    width: 600px;
+    background: #f9f9f9;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    position: relative; /* Для абсолютного позиционирования списка */
     display: flex;
     flex-direction: column;
+    height: 70vh; /* Set a percentage-based height */
+    margin: auto; /* Center the chat container horizontally */
 }
 
 /* Заголовок чата */
@@ -98,20 +101,37 @@ body {
     background: none;
     border: none;
     font-size: 20px;
-    color: #ff4d4d; /* Красный цвет */
+    color: #ff4d4d;
     cursor: pointer;
     transition: color 0.3s ease;
 }
+
 .logout-button:hover {
-    color: #ff1a1a; /* Более тёмный красный при наведении */
+    color: #ff1a1a;
+}
+
+/* Добавляем стили для кнопки очистки сообщений */
+.clear-button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #ff4d4d;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+
+.clear-button:hover {
+    color: #ff1a1a;
 }
 
 /* Строка поиска */
-#search-container {
-    width: calc(100% - 170px); /* Ширина строки поиска */
-    display: flex;
-    align-items: center;
+.search-container {
     margin-bottom: 10px;
+    display: flex; /* Добавляем flex-контейнер для выравнивания */
+    align-items: center; /* Выравниваем элементы по вертикали */
 }
 
 #search-input {
@@ -120,36 +140,57 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px 0 0 5px;
     box-sizing: border-box;
+    padding-right: 40px; /* Adjust for the search icon */
+    border-right: none; /* Убираем правую границу у поля ввода */
 }
 
 #search-button {
     width: 40px;
     height: 40px;
-    background: #773bb8; /* Ваш выбранный цвет */
+    background: #773bb8;
     border: none;
     border-radius: 0 5px 5px 0;
     color: white;
     font-size: 16px;
     cursor: pointer;
     transition: background 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
+
 #search-button:hover {
-    background: #592c89; /* Более тёмный цвет при наведении */
+    background: #592c89;
+}
+
+/* Flex container to hold conversations list and messages section */
+.chat-content {
+    display: flex;
+    height: 65%; /* Take up most of the chat-container height */
 }
 
 /* Список собеседников */
-#conversations-list {
-    width: 150px; /* Ширина списка */
-    height: calc(100% - 80px); /* Высота равна высоте чата минус заголовок */
+.conversations-list {
+    width: 25%;
+    height: 100%;
     overflow-y: auto;
     border: 1px solid #ddd;
     border-radius: 5px;
     padding: 10px;
     background: white;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    position: absolute; /* Размещаем список справа */
-    right: 0;
-    top: 60px; /* Отступ от заголовка чата */
+    margin-right: 10px; /* Add spacing between conversations list and messages */
+}
+
+/* Убираем буллеты из списка собеседников */
+#conversations ul {
+    list-style-type: none !important; /* Убираем маркеры списка */
+    padding: 0;
+    margin: 0;
+}
+
+#conversations-list ul li {
+    list-style-type: none;
+    margin-left: -40px;
 }
 
 /* Пункты списка собеседников */
@@ -159,44 +200,76 @@ body {
     border-bottom: 1px solid #f4f4f4;
     transition: background 0.3s ease;
 }
+
 #conversations li:hover {
     background: #f4f4f4;
 }
 
 /* Поле для публичных сообщений */
 .messages {
-    height: 300px;
+    height: 100%;
     overflow-y: auto;
     border: 1px solid #ddd;
     padding: 10px;
-    margin-bottom: 10px;
     border-radius: 5px;
-    margin-right: 170px; /* Отступ для списка собеседников */
+    background: white; /* Match conversation list background */
+}
+
+/* Контейнер для сообщений */
+.messages-container {
+    position: relative;
+    flex: 1; /*  Занимаем оставшееся место  */
 }
 
 /* Форма отправки сообщения */
 .message-form {
     display: flex;
     align-items: center;
+    margin-top: 30px; /* Увеличиваем отступ для поля ввода сообщения */
 }
 
-/* Поле ввода сообщения */
-#message-input {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    margin-right: 5px;
-    box-sizing: border-box;
+/* Style .message-form input[type="text"] */
+.message-form input[type="text"] {
+    flex: 1; /* This allows input field to take available width */
+    padding: 10px; /* Add padding for better visual appearance */
+    border: 1px solid #ddd; /* Set a border */
+    border-radius: 5px; /* Round the corners */
+    margin-right: 5px; /* Spacing to the right */
+    box-sizing: border-box; /* Include padding and border in element's total width */
+    font-size: 14px; /* Adjust font size */
+    color: #333; /* Set text color */
 }
 
-/* Кнопка отправки сообщения */
+/* Style .send-button */
+.send-button {
+    width: 40px; /* Set width */
+    height: 40px; /* Set height */
+    background: #773bb8; /* Set background color */
+    border: none; /* Remove border */
+    border-radius: 50%; /* Make it a circle */
+    color: white; /* Set text color */
+    font-size: 16px; /* Set font size */
+    cursor: pointer; /* Change cursor on hover */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+    /* Further adjusts */
+    line-height: 0;
+}
+
+/* Adjust send-button:hover */
+.send-button:hover {
+    background: #592c89; /* Darker shade of purple */
+}
+
+/*Additional styling for .send-button*/
 .send-button {
     width: 40px;
     height: 40px;
-    background: #773bb8; /* Ваш выбранный цвет */
+    background: #773bb8;
     border: none;
-    border-radius: 50%; /* Круглая кнопка */
+    border-radius: 50%;
     color: white;
     font-size: 16px;
     cursor: pointer;
@@ -205,8 +278,9 @@ body {
     justify-content: center;
     transition: background 0.3s ease;
 }
+
 .send-button:hover {
-    background: #592c89; /* Более тёмный цвет при наведении */
+    background: #592c89;
 }
 
 /* Страница личного чата */
@@ -237,12 +311,13 @@ body {
     background: none;
     border: none;
     font-size: 16px;
-    color: #773bb8; /* Цвет кнопки "Назад" */
+    color: #773bb8;
     cursor: pointer;
     transition: color 0.3s ease;
 }
+
 .back-button:hover {
-    color: #592c89; /* Более тёмный цвет при наведении */
+    color: #592c89;
 }
 
 /* Поле для личных сообщений */

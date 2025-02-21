@@ -5,6 +5,7 @@ let lastReceivedPublicTimestamp = null;
 let currentRecipient = null;
 let conversationsLoaded = false;
 let username = null;
+let currentChatType = 'public';  //  Тип текущего чата (public или private)
 
 // Получаем элементы DOM
 const registerContainer = document.getElementById('register-container');
@@ -27,6 +28,9 @@ const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const recipientNameElement = document.getElementById('recipient-name');
 const conversationsList = document.getElementById('conversations');
+const clearMessagesButton = document.getElementById('clear-messages-button');
+const clearPrivateMessagesButton = document.getElementById('clear-private-messages-button');
+const publicChatItem = document.getElementById('public-chat-item'); // Пункт "Общий чат"
 
 // Проверка авторизации при загрузке страницы
 async function checkAuth() {
@@ -132,9 +136,9 @@ function addPrivateMessage(message) {
     recipientSet.add(message.id);
 
     const messageElement = document.createElement('div');
-    messageElement.textContent = `${message.sender}: ${message.text}`;
-    privateMessagesContainer.appendChild(messageElement);
-    privateMessagesContainer.scrollTop = privateMessagesContainer.scrollHeight;
+    messageElement.textContent = `${message.sender}: ${message.text}`; //  Используем message.sender для отображения имени
+    messagesContainer.appendChild(messageElement);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 document.getElementById('switch-to-login').addEventListener('click', () => {
@@ -239,6 +243,7 @@ logoutButton.addEventListener('click', async () => {
     registerContainer.style.display = 'none';
     chatContainer.style.display = 'none';
     privateChatContainer.style.display = 'none';
+    // location.reload();
 });
 
 messageForm.addEventListener('submit', (e) => {
@@ -249,7 +254,14 @@ messageForm.addEventListener('submit', (e) => {
             alert('Вы не авторизованы');
             return;
         }
-        socket.emit('sendMessage', message);
+
+        //  Определяем, в какой чат отправлять сообщение (публичный или личный)
+        if (currentChatType === 'public') {
+            socket.emit('sendMessage', message);
+        } else {
+            socket.emit('sendPrivateMessage', { recipient: currentRecipient, text: message });
+        }
+
         messageInput.value = '';
     }
 });
@@ -279,6 +291,13 @@ async function loadConversations() {
         const data = await response.json();
         conversationsList.innerHTML = '';
 
+        // Add public chat item
+        const publicChatItem = document.createElement('li');
+        publicChatItem.textContent = 'Общий чат';
+        publicChatItem.dataset.recipient = 'public';
+        publicChatItem.addEventListener('click', () => openChat('public'));
+        conversationsList.appendChild(publicChatItem);
+
         data.forEach((username) => {
             const listItem = document.createElement('li');
             listItem.textContent = username;
@@ -295,20 +314,57 @@ async function loadConversations() {
     }
 }
 
+function openChat(chatType) {
+    if (chatType === 'public') {
+        currentChatType = 'public';
+        currentRecipient = null;
+
+        messagesContainer.innerHTML = '';
+        fetchPublicMessages().then((messages) => {
+            messages.forEach(addPublicMessage);
+        });
+
+        chatContainer.style.display = 'block';
+        privateChatContainer.style.display = 'none';
+    }
+}
+
+async function fetchPublicMessages() {
+    try {
+        const response = await fetch('/get-public-messages', { credentials: 'include' });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText);
+        }
+
+        const data = await response.json();
+        console.log('Получены старые публичные сообщения:', data.messages);
+        displayedPublicMessages.clear();
+        return data.messages;
+    } catch (error) {
+        console.error('Ошибка при получении публичных сообщений:', error);
+        return [];
+    }
+}
+
 function openPrivateChat(recipient) {
-    if (!username) { // Используем username
+    if (!username) {
         alert('Вы не авторизованы');
         return;
     }
 
+    currentChatType = 'private';
     currentRecipient = recipient;
-    chatContainer.style.display = 'none';
-    privateChatContainer.style.display = 'block';
-    recipientNameElement.textContent = `Собеседник: ${recipient}`;
 
-    fetchPrivateMessages(username, recipient).then((messages) => { // Используем username
-        privateMessagesContainer.innerHTML = '';
-        messages.forEach(addPrivateMessage);
+    chatContainer.style.display = 'block';
+    privateChatContainer.style.display = 'none';
+
+    //  Очищаем контейнер и кэш сообщений перед загрузкой новых
+    messagesContainer.innerHTML = '';
+    displayedPrivateMessages.clear();
+
+    fetchPrivateMessages(username, recipient).then((messages) => {
+        messages.forEach(message => addPrivateMessage(message)); //  Используем addPrivateMessage для отображения личных сообщений
     });
 }
 
@@ -402,3 +458,44 @@ backToPublicChatButton.addEventListener('click', () => {
     currentRecipient = null;
     privateMessagesContainer.innerHTML = ''; // Очищаем контейнер личных сообщений
 });
+
+clearMessagesButton.addEventListener('click', async () => {
+    if (confirm('Вы уверены, что хотите очистить историю чата?')) {
+        try {
+            const response = await fetch('/clear-public-messages', {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+
+            messagesContainer.innerHTML = '';
+            displayedPublicMessages.clear();
+
+            alert('История чата успешно очищена');
+        } catch (error) {
+            console.error('Ошибка при очистке истории чата:', error);
+            alert(`Ошибка при очистке истории чата: ${error.message}`);
+        }
+    }
+});
+
+if (clearPrivateMessagesButton) { // Добавлена проверка на существование элемента
+    clearPrivateMessagesButton.addEventListener('click', () => {
+        if (confirm('Вы уверены, что хотите очистить историю личного чата?')) {
+            privateMessagesContainer.innerHTML = '';
+            // displayedPrivateMessages.delete(currentRecipient); // Удалять историю для конкретного собеседника небезопасно
+            displayedPrivateMessages.clear();
+        }
+    });
+}
+
+// При загрузке страницы открываем общий чат по умолчанию
+window.onload = () => {
+    if (chatContainer.style.display === 'block') {
+        openChat('public');
+    }
+};

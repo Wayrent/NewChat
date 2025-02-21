@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Простой чат</title>
+    <title>Чатик</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -30,31 +30,41 @@
         <button id="switch-to-register" class="secondary-button">Зарегистрироваться</button>
     </div>
 
-    <!-- Страница публичного чата -->
+    <!-- Страница чата -->
     <div id="chat-container" style="display: none;">
         <div class="chat-header">
-            <h1>Простой чат</h1>
+            <h1>Чатик</h1>
             <button id="logout-button" class="logout-button">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
         <!-- Строка поиска -->
-        <div id="search-container" style="display: flex; align-items: center; margin-bottom: 10px;">
+        <div id="search-container" class="search-container">
             <input type="text" id="search-input" placeholder="Поиск собеседника..." required />
             <button id="search-button" class="search-button">
                 <i class="fas fa-search"></i>
             </button>
         </div>
 
-        <!-- Список собеседников -->
-        <div id="conversations-list" style="width: 150px; height: calc(100% - 80px); overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); position: absolute; right: 0; top: 60px;">
-            <h3>Ваши переписки:</h3>
-            <ul id="conversations"></ul>
+        <div class="chat-content">
+            <!-- Список собеседников -->
+            <div id="conversations-list" class="conversations-list">
+                <h3>Все чаты:</h3>
+                <ul id="conversations">
+                    <li id="public-chat-item" data-recipient="public">Общий чат</li> <!--  Общий чат как пункт списка  -->
+                </ul>
+            </div>
+
+            <!-- Контейнер для сообщений и кнопки удаления -->
+            <div class="messages-container">
+                <div id="messages" class="messages"></div>
+                <button id="clear-messages-button" class="clear-button">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Поле для публичных сообщений -->
-        <div id="messages" class="messages" style="margin-right: 170px;"></div>
         <form id="message-form" class="message-form">
             <input type="text" id="message-input" placeholder="Введите сообщение..." required />
             <button type="submit" class="send-button">

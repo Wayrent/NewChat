@@ -21,11 +21,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-      origin: "http://localhost:3000",
-      methods: ["GET", "POST"],
-      credentials: true
+        origin: "http://localhost:3000",
+        methods: ["GET", "POST"],
+        credentials: true
     }
-  });
+});
 
 // Middleware для CORS
 app.use(express.json());
@@ -237,6 +237,40 @@ app.post('/get-private-messages', async (req, res) => {
     }
 });
 
+// Получение истории публичных сообщений
+app.get('/get-public-messages', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM messages ORDER BY created_at ASC');
+        console.log('Запрошена история публичных сообщений');
+        res.json({ messages: result.rows.map(row => ({
+            id: row.id,
+            username: row.user_id,
+            text: row.text,
+            createdAt: row.created_at.toISOString()
+        })) });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Ошибка сервера');
+    }
+});
+
+// Добавляем обработчик для очистки публичных сообщений
+app.post('/clear-public-messages', async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).send('Неавторизованный пользователь');
+    }
+
+    try {
+        await pool.query('DELETE FROM messages');
+
+        console.log('История публичных сообщений успешно очищена');
+        res.send('История публичных сообщений успешно очищена');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Ошибка сервера при очистке истории сообщений');
+    }
+});
+
 // Middleware для восстановления сессии по cookie
 io.use((socket, next) => {
     const handshakeData = socket.handshake;
@@ -266,7 +300,7 @@ io.on('connection', async (socket) => {
 
     console.log(`Пользователь ${username} подключился к чату через WebSocket`);
 
-    // Рассылка публичных сообщений
+    //  Рассылка публичных сообщений при подключении к общему чату
     const publicMessages = await getPublicMessages();
     socket.emit('previousMessages', publicMessages);
 
@@ -291,7 +325,7 @@ io.on('connection', async (socket) => {
 
     // Обработка отправки личных сообщений
     socket.on('sendPrivateMessage', async ({ recipient, text }) => {
-        const sender = username;
+        const sender = socket.username;
 
         if (!sender || !recipient || !text) {
             console.error('Некорректные данные для личного сообщения:', { sender, recipient, text });
@@ -303,7 +337,8 @@ io.on('connection', async (socket) => {
         const createdAt = result.rows[0].created_at.toISOString();
 
         console.log(`Пользователь ${sender} отправил личное сообщение пользователю ${recipient}: "${text}"`);
-        io.emit('receivePrivateMessage', { id: messageId, sender, recipient, text, createdAt });
+        //  Включаем имя отправителя в сообщение
+        io.emit('receivePrivateMessage', { id: messageId, sender: sender, recipient, text, createdAt });
     });
 
     socket.on('disconnect', () => {
