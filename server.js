@@ -27,7 +27,7 @@ const io = socketIo(server, {
     }
 });
 
-// Middleware для CORS
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -41,28 +41,24 @@ const sessionMiddleware = session({
     cookie: {
         secure: false,
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000  // 24 hours
+        maxAge: 24 * 60 * 60 * 1000
     }
 });
 
-// Применяем middleware сессий к Express
 app.use(sessionMiddleware);
-
-// Настройка Express для обслуживания статических файлов
 app.use(express.static('public'));
 
-// Функция для получения публичных сообщений
+// Функции для запросов в БД
 async function getPublicMessages() {
     const result = await pool.query('SELECT * FROM messages ORDER BY created_at ASC');
     return result.rows.map(row => ({
         id: row.id,
         username: row.user_id,
         text: row.text,
-        createdAt: row.created_at.toISOString()
+        createdAt: result.rows[0].created_at.toISOString()
     }));
 }
 
-// Функция для получения личных сообщений
 async function getPrivateMessages(user1, user2) {
     const result = await pool.query(`
         SELECT * FROM private_messages
@@ -74,16 +70,15 @@ async function getPrivateMessages(user1, user2) {
         sender: row.sender,
         recipient: row.recipient,
         text: row.text,
-        createdAt: row.created_at.toISOString()
+        createdAt: result.rows[0].created_at.toISOString()
     }));
 }
 
-// Функция для проверки пароля
 async function verifyPassword(password, hash) {
     return await bcrypt.compare(password, hash);
 }
 
-// Проверка авторизации пользователя
+// Маршруты
 app.get('/check-auth', (req, res) => {
     if (req.session.user) {
         res.json({ authenticated: true, username: req.session.user.username });
@@ -92,7 +87,6 @@ app.get('/check-auth', (req, res) => {
     }
 });
 
-// Регистрация пользователя
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
 
@@ -116,7 +110,6 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// Авторизация пользователя
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
@@ -149,7 +142,6 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// Выход из системы
 app.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
@@ -159,7 +151,6 @@ app.post('/logout', (req, res) => {
     });
 });
 
-// Поиск пользователя
 app.post('/search-user', async (req, res) => {
     const { username } = req.body;
 
@@ -173,7 +164,6 @@ app.post('/search-user', async (req, res) => {
             return res.status(404).send('Пользователь не найден');
         }
 
-        console.log(`Пользователь ${username} найден`);
         res.json({ user: user.rows[0].username });
     } catch (err) {
         console.error(err);
@@ -181,7 +171,6 @@ app.post('/search-user', async (req, res) => {
     }
 });
 
-// Получение списка собеседников
 app.get('/get-conversations', async (req, res) => {
     if (!req.session.user) {
         return res.status(401).send('Неавторизованный пользователь');
@@ -200,7 +189,6 @@ app.get('/get-conversations', async (req, res) => {
             WHERE recipient = $1
         `, [currentUser]);
 
-        console.log(`Список собеседников для пользователя ${currentUser}:`, result.rows.map(row => row.username));
         res.json(result.rows.map(row => row.username));
     } catch (err) {
         console.error(err);
@@ -208,7 +196,6 @@ app.get('/get-conversations', async (req, res) => {
     }
 });
 
-// Получение истории личных сообщений
 app.post('/get-private-messages', async (req, res) => {
     const { sender, recipient } = req.body;
 
@@ -223,13 +210,12 @@ app.post('/get-private-messages', async (req, res) => {
             ORDER BY created_at ASC
         `, [sender, recipient]);
 
-        console.log(`Запрошена история личных сообщений между ${sender} и ${recipient}:`, result.rows);
         res.json({ messages: result.rows.map(row => ({
             id: row.id,
             sender: row.sender,
             recipient: row.recipient,
             text: row.text,
-            createdAt: row.created_at.toISOString()
+            createdAt: result.rows[0].created_at.toISOString()
         })) });
     } catch (err) {
         console.error(err);
@@ -237,16 +223,14 @@ app.post('/get-private-messages', async (req, res) => {
     }
 });
 
-// Получение истории публичных сообщений
 app.get('/get-public-messages', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM messages ORDER BY created_at ASC');
-        console.log('Запрошена история публичных сообщений');
         res.json({ messages: result.rows.map(row => ({
             id: row.id,
             username: row.user_id,
             text: row.text,
-            createdAt: row.created_at.toISOString()
+            createdAt: result.rows[0].created_at.toISOString()
         })) });
     } catch (err) {
         console.error(err);
@@ -254,7 +238,6 @@ app.get('/get-public-messages', async (req, res) => {
     }
 });
 
-// Добавляем обработчик для очистки публичных сообщений
 app.post('/clear-public-messages', async (req, res) => {
     if (!req.session.user) {
         return res.status(401).send('Неавторизованный пользователь');
@@ -262,8 +245,6 @@ app.post('/clear-public-messages', async (req, res) => {
 
     try {
         await pool.query('DELETE FROM messages');
-
-        console.log('История публичных сообщений успешно очищена');
         res.send('История публичных сообщений успешно очищена');
     } catch (err) {
         console.error(err);
@@ -271,7 +252,35 @@ app.post('/clear-public-messages', async (req, res) => {
     }
 });
 
-// Middleware для восстановления сессии по cookie
+// Удаление переписки с пользователем
+app.post('/delete-conversation', async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).send('Неавторизованный пользователь');
+    }
+
+    const currentUser = req.session.user.username;
+    const recipient = req.body.recipient;
+
+    if (!recipient) {
+        return res.status(400).send('Получатель должен быть указан');
+    }
+
+    try {
+        // Удаляем все сообщения между текущим пользователем и выбранным собеседником
+        await pool.query(`
+            DELETE FROM private_messages
+            WHERE (sender = $1 AND recipient = $2) OR (sender = $2 AND recipient = $1)
+        `, [currentUser, recipient]);
+
+        console.log(`Удалена переписка между ${currentUser} и ${recipient}`);
+        res.send('Переписка успешно удалена');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Ошибка сервера при удалении переписки');
+    }
+});
+
+// WebSocket обработчики
 io.use((socket, next) => {
     const handshakeData = socket.handshake;
 
@@ -294,51 +303,69 @@ io.use((socket, next) => {
     }
 });
 
-// Обработка подключения клиентов
 io.on('connection', async (socket) => {
     const username = socket.username;
 
     console.log(`Пользователь ${username} подключился к чату через WebSocket`);
 
-    //  Рассылка публичных сообщений при подключении к общему чату
     const publicMessages = await getPublicMessages();
     socket.emit('previousMessages', publicMessages);
 
     socket.broadcast.emit('userJoined', { username, message: `${username} присоединился к чату` });
 
-    // Обработка отправки публичных сообщений
     socket.on('sendMessage', async (data) => {
+        const username = socket.username;
         const message = { username: username, text: data };
-
+    
         if (!message.username) {
             console.error('Имя пользователя отсутствует при отправке публичного сообщения');
             return;
         }
-
-        const result = await pool.query('INSERT INTO messages (user_id, text) VALUES ($1, $2) RETURNING id, created_at', [message.username, message.text]);
-        const messageId = result.rows[0].id;
-        const createdAt = result.rows[0].created_at.toISOString();
-
-        console.log(`Пользователь ${username} отправил публичное сообщение: "${data}"`);
-        io.emit('receiveMessage', { id: messageId, username: message.username, text: message.text, createdAt });
+    
+        try {
+            const result = await pool.query(
+                'INSERT INTO messages (user_id, text) VALUES ($1, $2) RETURNING id, created_at',
+                [message.username, message.text]
+            );
+    
+            if (result.rows.length > 0) {
+                const messageId = result.rows[0].id;
+                const createdAt = result.rows[0].created_at.toISOString();
+    
+                io.emit('receiveMessage', { id: messageId, username: username, text: data, createdAt });
+            } else {
+                console.error('Сообщение не было добавлено в базу данных');
+            }
+        } catch (error) {
+            console.error('Ошибка при добавлении публичного сообщения:', error);
+        }
     });
-
-    // Обработка отправки личных сообщений
+    
     socket.on('sendPrivateMessage', async ({ recipient, text }) => {
         const sender = socket.username;
-
+    
         if (!sender || !recipient || !text) {
             console.error('Некорректные данные для личного сообщения:', { sender, recipient, text });
             return;
         }
-
-        const result = await pool.query('INSERT INTO private_messages (sender, recipient, text) VALUES ($1, $2, $3) RETURNING id, created_at', [sender, recipient, text]);
-        const messageId = result.rows[0].id;
-        const createdAt = result.rows[0].created_at.toISOString();
-
-        console.log(`Пользователь ${sender} отправил личное сообщение пользователю ${recipient}: "${text}"`);
-        //  Включаем имя отправителя в сообщение
-        io.emit('receivePrivateMessage', { id: messageId, sender: sender, recipient, text, createdAt });
+    
+        try {
+            const result = await pool.query(
+                'INSERT INTO private_messages (sender, recipient, text) VALUES ($1, $2, $3) RETURNING id, created_at',
+                [sender, recipient, text]
+            );
+    
+            if (result.rows.length > 0) {
+                const messageId = result.rows[0].id;
+                const createdAt = result.rows[0].created_at.toISOString();
+    
+                io.emit('receivePrivateMessage', { id: messageId, sender: sender, recipient, text, createdAt });
+            } else {
+                console.error('Сообщение не было добавлено в базу данных');
+            }
+        } catch (error) {
+            console.error('Ошибка при добавлении личного сообщения:', error);
+        }
     });
 
     socket.on('disconnect', () => {

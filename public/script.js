@@ -1,36 +1,29 @@
-let socket = null;
-const displayedPublicMessages = new Set();
-const displayedPrivateMessages = new Map(); // Map для хранения множества по каждому собеседнику
-let lastReceivedPublicTimestamp = null;
-let currentRecipient = null;
-let conversationsLoaded = false;
-let username = null;
-let currentChatType = 'public';  //  Тип текущего чата (public или private)
+let socket = null; // Объект WebSocket
+const displayedPublicMessages = new Set(); // Set для хранения ID отображенных публичных сообщений
+const displayedPrivateMessages = new Map(); // Map для хранения множества ID личных сообщений для каждого собеседника
+let lastReceivedPublicTimestamp = null; // Время последнего полученного публичного сообщения
+let currentRecipient = null; // Текущий получатель личных сообщений
+let conversationsLoaded = false; // Флаг, указывающий, загружен ли список собеседников
+let username = null; // Имя текущего пользователя
+let currentChatType = 'public'; // Тип текущего чата (public или private)
 
 // Получаем элементы DOM
 const registerContainer = document.getElementById('register-container');
 const loginContainer = document.getElementById('login-container');
 const chatContainer = document.getElementById('chat-container');
-const privateChatContainer = document.getElementById('private-chat-container');
-const searchContainer = document.getElementById('search-container');
 const messagesContainer = document.getElementById('messages');
-const privateMessagesContainer = document.getElementById('private-messages');
 const conversationsListContainer = document.getElementById('conversations-list');
 const registerForm = document.getElementById('register-form');
 const loginForm = document.getElementById('login-form');
 const messageForm = document.getElementById('message-form');
-const privateMessageForm = document.getElementById('private-message-form');
 const messageInput = document.getElementById('message-input');
-const privateMessageInput = document.getElementById('private-message-input');
 const logoutButton = document.getElementById('logout-button');
 const backToPublicChatButton = document.getElementById('back-to-public-chat');
 const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
-const recipientNameElement = document.getElementById('recipient-name');
 const conversationsList = document.getElementById('conversations');
 const clearMessagesButton = document.getElementById('clear-messages-button');
 const clearPrivateMessagesButton = document.getElementById('clear-private-messages-button');
-const publicChatItem = document.getElementById('public-chat-item'); // Пункт "Общий чат"
 
 // Проверка авторизации при загрузке страницы
 async function checkAuth() {
@@ -45,120 +38,117 @@ async function checkAuth() {
             chatContainer.style.display = 'block';
 
             if (!socket) {
-                socket = io({ withCredentials: true });
-                setupSocketListeners(socket);
+                socket = io({ withCredentials: true }); // Инициализация сокета
+                setupSocketListeners(socket); // Настройка обработчиков событий сокета
             }
 
-            //  socket.emit('setUsername', data.username); // Больше не нужно
-            setTimeout(() => loadConversations(), 500); // Загружаем список собеседников после установки сокета
+            setTimeout(() => loadConversations(), 500); // Загрузка списка собеседников
         } else {
             loginContainer.style.display = 'flex';
             registerContainer.style.display = 'none';
             chatContainer.style.display = 'none';
-            privateChatContainer.style.display = 'none';
         }
     } catch (error) {
         console.error('Ошибка при проверке авторизации:', error);
         loginContainer.style.display = 'flex';
         registerContainer.style.display = 'none';
         chatContainer.style.display = 'none';
-        privateChatContainer.style.display = 'none';
     }
 }
 
-checkAuth();
+checkAuth(); // Вызов функции проверки авторизации
 
+// Настройка обработчиков событий сокета
 function setupSocketListeners(socket) {
     socket.on('connect', () => {
         console.log('WebSocket connected');
     });
 
     socket.on('previousMessages', (messages) => {
-        console.log('Получены старые публичные сообщения:', messages);
-        displayedPublicMessages.clear();
-        messages.forEach(addPublicMessage);
+        displayedPublicMessages.clear(); // Очистка Set перед добавлением старых сообщений
+        messages.forEach(addPublicMessage); // Добавление старых сообщений на страницу
 
         if (messages.length > 0) {
-            lastReceivedPublicTimestamp = new Date(messages[messages.length - 1].createdAt).getTime();
+            lastReceivedPublicTimestamp = new Date(messages[messages.length - 1].createdAt).getTime(); // Установка времени последнего сообщения
         } else {
             lastReceivedPublicTimestamp = null;
         }
     });
 
     socket.on('receiveMessage', (message) => {
-        console.log('Получено новое публичное сообщение:', message);
-        const messageTimestamp = new Date(message.createdAt).getTime();
+        const messageTimestamp = new Date(message.createdAt).getTime(); // Время полученного сообщения
         if (lastReceivedPublicTimestamp === null || messageTimestamp > lastReceivedPublicTimestamp) {
-            addPublicMessage(message);
+            addPublicMessage(message); // Добавление нового публичного сообщения
         }
     });
 
     socket.on('receivePrivateMessage', (message) => {
-        console.log('Получено новое личное сообщение:', message);
-        // Измененная логика проверки:
         if (currentRecipient && (currentRecipient === message.sender || currentRecipient === message.recipient)) {
-            addPrivateMessage(message);
+            addPrivateMessage(message); // Добавление нового личного сообщения
         }
     });
 
-    socket.on('userJoined', (data) => addSystemMessage(data.message));
-    socket.on('userLeft', (data) => addSystemMessage(data.message));
+    socket.on('userJoined', (data) => addSystemMessage(data.message)); // Обработка события присоединения пользователя
+    socket.on('userLeft', (data) => addSystemMessage(data.message)); // Обработка события выхода пользователя
 }
 
+// Добавление публичного сообщения на страницу
 function addPublicMessage(message) {
-    if (displayedPublicMessages.has(message.id)) return;
+    if (displayedPublicMessages.has(message.id)) return; // Проверка, не отображено ли сообщение уже
 
-    displayedPublicMessages.add(message.id);
-    lastReceivedPublicTimestamp = new Date(message.createdAt).getTime();
+    displayedPublicMessages.add(message.id); // Добавление ID сообщения в Set
+    lastReceivedPublicTimestamp = new Date(message.createdAt).getTime(); // Обновление времени последнего полученного сообщения
 
-    const messageElement = document.createElement('div');
-    messageElement.textContent = `${message.username}: ${message.text}`;
-    messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const messageElement = document.createElement('div'); // Создание элемента сообщения
+    messageElement.textContent = `${message.username}: ${message.text}`; // Установка текста сообщения
+    messagesContainer.appendChild(messageElement); // Добавление элемента сообщения в контейнер
+    messagesContainer.scrollTop = messagesContainer.scrollHeight; // Прокрутка контейнера вниз
 }
 
+// Добавление системного сообщения на страницу
 function addSystemMessage(message) {
-    const messageElement = document.createElement('div');
-    messageElement.textContent = message;
-    messageElement.style.color = 'gray';
-    messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const messageElement = document.createElement('div'); // Создание элемента сообщения
+    messageElement.textContent = message; // Установка текста сообщения
+    messageElement.style.color = 'gray'; // Установка цвета текста
+    messagesContainer.appendChild(messageElement); // Добавление элемента сообщения в контейнер
+    messagesContainer.scrollTop = messagesContainer.scrollHeight; // Прокрутка контейнера вниз
 }
 
+// Добавление личного сообщения на страницу
 function addPrivateMessage(message) {
     if (!displayedPrivateMessages.has(message.recipient)) {
-        displayedPrivateMessages.set(message.recipient, new Set());
+        displayedPrivateMessages.set(message.recipient, new Set()); // Создание Set для хранения ID сообщений, если его еще нет
     }
 
-    const recipientSet = displayedPrivateMessages.get(message.recipient);
-    if (recipientSet.has(message.id)) return;
+    const recipientSet = displayedPrivateMessages.get(message.recipient); // Получение Set для текущего получателя
+    if (recipientSet.has(message.id)) return; // Проверка, не отображено ли сообщение уже
 
-    recipientSet.add(message.id);
+    recipientSet.add(message.id); // Добавление ID сообщения в Set
 
-    const messageElement = document.createElement('div');
-    messageElement.textContent = `${message.sender}: ${message.text}`; //  Используем message.sender для отображения имени
-    messagesContainer.appendChild(messageElement);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const messageElement = document.createElement('div'); // Создание элемента сообщения
+    messageElement.textContent = `${message.sender}: ${message.text}`; // Установка текста сообщения
+    messagesContainer.appendChild(messageElement); // Добавление элемента сообщения в контейнер
+    messagesContainer.scrollTop = messagesContainer.scrollHeight; // Прокрутка контейнера вниз
 }
 
+// Обработчики переключения между формами регистрации и входа
 document.getElementById('switch-to-login').addEventListener('click', () => {
     registerContainer.style.display = 'none';
     loginContainer.style.display = 'flex';
     chatContainer.style.display = 'none';
-    privateChatContainer.style.display = 'none';
 });
 
 document.getElementById('switch-to-register').addEventListener('click', () => {
     loginContainer.style.display = 'none';
     registerContainer.style.display = 'flex';
     chatContainer.style.display = 'none';
-    privateChatContainer.style.display = 'none';
 });
 
+// Обработчик отправки формы регистрации
 registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('register-username').value.trim();
-    const password = document.getElementById('register-password').value.trim();
+    e.preventDefault(); // Предотвращение отправки формы по умолчанию
+    const username = document.getElementById('register-username').value.trim(); // Получение и очистка имени пользователя
+    const password = document.getElementById('register-password').value.trim(); // Получение и очистка пароля
 
     if (!username || !password) {
         alert('Имя пользователя и пароль должны быть указаны');
@@ -166,10 +156,10 @@ registerForm.addEventListener('submit', async (e) => {
     }
 
     try {
-        const response = await fetch('/register', {
+        const response = await fetch('/register', { // Отправка запроса на сервер
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password }) // Отправка данных в формате JSON
         });
 
         if (!response.ok) {
@@ -178,23 +168,23 @@ registerForm.addEventListener('submit', async (e) => {
         }
 
         const result = await response.text();
-        alert(result);
+        alert(result); // Отображение сообщения от сервера
 
         if (response.ok) {
             registerContainer.style.display = 'none';
             loginContainer.style.display = 'flex';
             chatContainer.style.display = 'none';
-            privateChatContainer.style.display = 'none';
         }
     } catch (error) {
-        alert(`Ошибка регистрации: ${error.message}`);
+        alert(`Ошибка регистрации: ${error.message}`); // Отображение сообщения об ошибке
     }
 });
 
+// Обработчик отправки формы входа
 loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value.trim();
+    e.preventDefault(); // Предотвращение отправки формы по умолчанию
+    const username = document.getElementById('login-username').value.trim(); // Получение и очистка имени пользователя
+    const password = document.getElementById('login-password').value.trim(); // Получение и очистка пароля
 
     if (!username || !password) {
         alert('Имя пользователя и пароль должны быть указаны');
@@ -202,10 +192,10 @@ loginForm.addEventListener('submit', async (e) => {
     }
 
     try {
-        const response = await fetch('/login', {
+        const response = await fetch('/login', { // Отправка запроса на сервер
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password }) // Отправка данных в формате JSON
         });
 
         if (!response.ok) {
@@ -214,160 +204,198 @@ loginForm.addEventListener('submit', async (e) => {
         }
 
         const result = await response.text();
-        alert(result);
+        alert(result); // Отображение сообщения от сервера
 
         if (response.ok) {
             setTimeout(() => location.reload(), 500); // Перезагрузка страницы после входа
         }
     } catch (error) {
-        alert(`Ошибка входа: ${error.message}`);
+        alert(`Ошибка входа: ${error.message}`); // Отображение сообщения об ошибке
     }
 });
 
+// Обработчик нажатия кнопки выхода
 logoutButton.addEventListener('click', async () => {
-    const response = await fetch('/logout', { method: 'POST', credentials: 'include' });
+    const response = await fetch('/logout', { method: 'POST', credentials: 'include' }); // Отправка запроса на сервер
     const result = await response.text();
-    alert(result);
+    alert(result); // Отображение сообщения от сервера
 
     if (socket) {
-        socket.disconnect();
+        socket.disconnect(); // Отключение сокета
         socket = null;
     }
 
-    displayedPublicMessages.clear();
-    displayedPrivateMessages.clear();
-    currentRecipient = null;
-    conversationsLoaded = false;
+    displayedPublicMessages.clear(); // Очистка Set публичных сообщений
+    displayedPrivateMessages.clear(); // Очистка Map личных сообщений
+    currentRecipient = null; // Сброс текущего получателя
+    conversationsLoaded = false; // Сброс флага загрузки списка собеседников
 
-    loginContainer.style.display = 'flex';
-    registerContainer.style.display = 'none';
-    chatContainer.style.display = 'none';
-    privateChatContainer.style.display = 'none';
-    // location.reload();
+    loginContainer.style.display = 'flex'; // Отображение формы входа
+    registerContainer.style.display = 'none'; // Скрытие формы регистрации
+    chatContainer.style.display = 'none'; // Скрытие контейнера чата
 });
 
+// Обработчик отправки формы сообщения
 messageForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const message = messageInput.value.trim();
+    e.preventDefault(); // Предотвращение отправки формы по умолчанию
+    const message = messageInput.value.trim(); // Получение и очистка текста сообщения
     if (message !== '') {
-        if (!socket || !username) { // Используем username, установленный при аутентификации
+        if (!socket || !username) {
             alert('Вы не авторизованы');
             return;
         }
 
-        //  Определяем, в какой чат отправлять сообщение (публичный или личный)
         if (currentChatType === 'public') {
-            socket.emit('sendMessage', message);
+            socket.emit('sendMessage', message); // Отправка публичного сообщения
         } else {
-            socket.emit('sendPrivateMessage', { recipient: currentRecipient, text: message });
+            socket.emit('sendPrivateMessage', { recipient: currentRecipient, text: message }); // Отправка личного сообщения
         }
 
-        messageInput.value = '';
+        messageInput.value = ''; // Очистка поля ввода сообщения
     }
 });
 
-privateMessageForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const message = privateMessageInput.value.trim();
-
-    if (message !== '' && currentRecipient && socket && username) { // Используем username
-        socket.emit('sendPrivateMessage', { recipient: currentRecipient, text: message });
-        privateMessageInput.value = '';
-    } else {
-        alert('Собеседник не выбран или вы не авторизованы');
-    }
-});
-
+// Загрузка списка собеседников
 async function loadConversations() {
-    if (conversationsLoaded || !username) return; // Используем username
+    if (conversationsLoaded || !username) return; // Проверка, загружен ли список уже и авторизован ли пользователь
 
     try {
-        const response = await fetch('/get-conversations', { credentials: 'include' });
+        const response = await fetch('/get-conversations', { credentials: 'include' }); // Отправка запроса на сервер
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(errorText);
         }
 
-        const data = await response.json();
-        conversationsList.innerHTML = '';
+        const data = await response.json(); // Получение данных из ответа
 
-        // Add public chat item
+        conversationsList.innerHTML = ''; // Очистка списка
+
+        // Создание элемента "Общий чат"
         const publicChatItem = document.createElement('li');
         publicChatItem.textContent = 'Общий чат';
         publicChatItem.dataset.recipient = 'public';
-        publicChatItem.addEventListener('click', () => openChat('public'));
-        conversationsList.appendChild(publicChatItem);
+        publicChatItem.addEventListener('click', () => openChat('public')); // Установка обработчика клика
+        conversationsList.appendChild(publicChatItem); // Добавление элемента в список
 
+        // Добавление пользователей в список
         data.forEach((username) => {
             const listItem = document.createElement('li');
             listItem.textContent = username;
             listItem.style.cursor = 'pointer';
             listItem.style.padding = '5px';
-            listItem.addEventListener('click', () => openPrivateChat(username));
-            conversationsList.appendChild(listItem);
+            listItem.addEventListener('click', () => openPrivateChat(username)); // Установка обработчика клика
+
+            // Добавляем значок удаления
+            const deleteIcon = document.createElement('span');
+            deleteIcon.innerHTML = '&times;'; // Значок крестика
+            deleteIcon.style.marginLeft = '5px';
+            deleteIcon.style.color = 'gray';
+            deleteIcon.style.cursor = 'pointer';
+            deleteIcon.addEventListener('click', (event) => {
+                event.stopPropagation(); // Предотвращаем открытие чата при клике на значок удаления
+                deleteConversation(username); // Вызов функции удаления переписки
+            });
+            listItem.appendChild(deleteIcon);
+
+            conversationsList.appendChild(listItem); // Добавление элемента в список
         });
 
-        conversationsListContainer.style.display = 'block';
-        conversationsLoaded = true;
+        conversationsListContainer.style.display = 'block'; // Отображение списка
+        conversationsLoaded = true; // Установка флага загрузки
     } catch (error) {
         console.error('Ошибка при загрузке списка собеседников:', error);
     }
 }
 
-function openChat(chatType) {
-    if (chatType === 'public') {
-        currentChatType = 'public';
-        currentRecipient = null;
+// Функция для удаления переписки
+async function deleteConversation(recipient) {
+    if (confirm(`Вы уверены, что хотите удалить чат с ${recipient}?`)) {
+        try {
+            const response = await fetch('/delete-conversation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recipient }),
+                credentials: 'include'
+            });
 
-        messagesContainer.innerHTML = '';
-        fetchPublicMessages().then((messages) => {
-            messages.forEach(addPublicMessage);
-        });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
 
-        chatContainer.style.display = 'block';
-        privateChatContainer.style.display = 'none';
+            alert('Чат успешно удален.');
+            removeConversationFromList(recipient);
+        } catch (error) {
+            console.error('Ошибка при удалении чата:', error);
+            alert(`Ошибка при удалении чата: ${error.message}`);
+        }
     }
 }
 
+// Функция для удаления контакта из списка
+function removeConversationFromList(recipient) {
+    const listItems = conversationsList.querySelectorAll('li');
+    listItems.forEach(item => {
+        if (item.textContent.startsWith(recipient)) {
+            item.remove(); // Удаляем элемент из списка
+        }
+    });
+}
+
+// Открытие чата (публичного или личного)
+function openChat(chatType) {
+    if (chatType === 'public') {
+        currentChatType = 'public'; // Установка типа чата
+        currentRecipient = null; // Сброс текущего получателя
+
+        messagesContainer.innerHTML = ''; // Очистка контейнера сообщений
+        fetchPublicMessages().then((messages) => {
+            messages.forEach(addPublicMessage); // Добавление публичных сообщений на страницу
+        });
+
+        chatContainer.style.display = 'block'; // Отображение контейнера чата
+    }
+}
+
+// Получение публичных сообщений с сервера
 async function fetchPublicMessages() {
     try {
-        const response = await fetch('/get-public-messages', { credentials: 'include' });
+        const response = await fetch('/get-public-messages', { credentials: 'include' }); // Отправка запроса на сервер
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(errorText);
         }
 
-        const data = await response.json();
-        console.log('Получены старые публичные сообщения:', data.messages);
-        displayedPublicMessages.clear();
-        return data.messages;
+        const data = await response.json(); // Получение данных из ответа
+        displayedPublicMessages.clear(); // Очистка Set публичных сообщений
+        return data.messages; // Возвращение массива сообщений
     } catch (error) {
         console.error('Ошибка при получении публичных сообщений:', error);
         return [];
     }
 }
 
+// Открытие личного чата с пользователем
 function openPrivateChat(recipient) {
     if (!username) {
         alert('Вы не авторизованы');
         return;
     }
 
-    currentChatType = 'private';
-    currentRecipient = recipient;
+    currentChatType = 'private'; // Установка типа чата
+    currentRecipient = recipient; // Установка текущего получателя
 
-    chatContainer.style.display = 'block';
-    privateChatContainer.style.display = 'none';
+    chatContainer.style.display = 'block'; // Отображение контейнера чата
 
-    //  Очищаем контейнер и кэш сообщений перед загрузкой новых
-    messagesContainer.innerHTML = '';
-    displayedPrivateMessages.clear();
+    messagesContainer.innerHTML = ''; // Очистка контейнера сообщений
+    displayedPrivateMessages.clear(); // Очистка Map личных сообщений
 
     fetchPrivateMessages(username, recipient).then((messages) => {
-        messages.forEach(message => addPrivateMessage(message)); //  Используем addPrivateMessage для отображения личных сообщений
+        messages.forEach(message => addPrivateMessage(message)); // Добавление личных сообщений на страницу
     });
 }
 
+// Получение личных сообщений с сервера
 async function fetchPrivateMessages(sender, recipient) {
     if (!sender || !recipient) {
         console.error('Отправитель или получатель не указаны');
@@ -375,11 +403,11 @@ async function fetchPrivateMessages(sender, recipient) {
     }
 
     try {
-        const response = await fetch('/get-private-messages', {
+        const response = await fetch('/get-private-messages', { // Отправка запроса на сервер
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sender, recipient })
+            body: JSON.stringify({ sender, recipient }) // Отправка данных в формате JSON
         });
 
         if (!response.ok) {
@@ -387,26 +415,26 @@ async function fetchPrivateMessages(sender, recipient) {
             throw new Error(errorText);
         }
 
-        const data = await response.json();
-        console.log(`Загружена история личных сообщений между ${sender} и ${recipient}:`, data.messages);
-        return data.messages;
+        const data = await response.json(); // Получение данных из ответа
+        return data.messages; // Возвращение массива сообщений
     } catch (error) {
         console.error('Ошибка при получении личных сообщений:', error);
         return [];
     }
 }
 
+// Поиск пользователя
 searchInput.addEventListener('keypress', async (e) => {
     if (e.key === 'Enter') {
-        const username = searchInput.value.trim();
+        const username = searchInput.value.trim(); // Получение и очистка имени пользователя
         if (!username) return;
 
         try {
-            const response = await fetch('/search-user', {
+            const response = await fetch('/search-user', { // Отправка запроса на сервер
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
+                body: JSON.stringify({ username }) // Отправка данных в формате JSON
             });
 
             if (!response.ok) {
@@ -414,26 +442,30 @@ searchInput.addEventListener('keypress', async (e) => {
                 throw new Error(errorText);
             }
 
-            const data = await response.json();
-            console.log(`Найден пользователь: ${data.user}`);
-            alert(`Найден пользователь: ${data.user}`);
-            openPrivateChat(data.user);
+            const data = await response.json(); // Получение данных из ответа
+            alert(`Найден пользователь: ${data.user}`); // Отображение сообщения
+
+            // Добавляем пользователя в список контактов (если его там нет)
+            addConversationToList(data.user);
+
+            openPrivateChat(data.user); // Открытие личного чата
         } catch (error) {
-            alert(`Ошибка поиска: ${error.message}`);
+            alert(`Ошибка поиска: ${error.message}`); // Отображение сообщения об ошибке
         }
     }
 });
 
+// Поиск пользователя
 searchButton.addEventListener('click', async () => {
-    const username = searchInput.value.trim();
+    const username = searchInput.value.trim(); // Получение и очистка имени пользователя
     if (!username) return;
 
     try {
-        const response = await fetch('/search-user', {
+        const response = await fetch('/search-user', { // Отправка запроса на сервер
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username }) // Отправка данных в формате JSON
         });
 
         if (!response.ok) {
@@ -441,28 +473,63 @@ searchButton.addEventListener('click', async () => {
             throw new Error(errorText);
         }
 
-        const data = await response.json();
-        console.log(`Найден пользователь: ${data.user}`);
-        alert(`Найден пользователь: ${data.user}`);
-        openPrivateChat(data.user);
+        const data = await response.json(); // Получение данных из ответа
+        alert(`Найден пользователь: ${data.user}`); // Отображение сообщения
+
+        // Добавляем пользователя в список контактов (если его там нет)
+        addConversationToList(data.user);
+
+        openPrivateChat(data.user); // Открытие личного чата
     } catch (error) {
-        alert(`Ошибка поиска: ${error.message}`);
+        alert(`Ошибка поиска: ${error.message}`); // Отображение сообщения об ошибке
     }
 });
 
+// Функция для добавления контакта в список (если его там нет)
+function addConversationToList(recipient) {
+    const listItems = conversationsList.querySelectorAll('li');
+    let exists = false;
+    listItems.forEach(item => {
+        if (item.textContent.startsWith(recipient)) {
+            exists = true; // Проверяем, существует ли контакт уже в списке
+        }
+    });
+
+    if (!exists) {
+        const listItem = document.createElement('li');
+        listItem.textContent = recipient;
+        listItem.style.cursor = 'pointer';
+        listItem.style.padding = '5px';
+        listItem.addEventListener('click', () => openPrivateChat(recipient));
+
+        // Добавляем значок удаления
+        const deleteIcon = document.createElement('span');
+        deleteIcon.innerHTML = '&times;'; // Значок крестика
+        deleteIcon.style.marginLeft = '5px';
+        deleteIcon.style.color = 'gray';
+        deleteIcon.style.cursor = 'pointer';
+        deleteIcon.addEventListener('click', (event) => {
+            event.stopPropagation(); // Предотвращаем открытие чата при клике на значок удаления
+            deleteConversation(recipient); // Вызов функции удаления переписки
+        });
+        listItem.appendChild(deleteIcon);
+
+        conversationsList.appendChild(listItem); // Добавляем элемент в список
+    }
+}
+
+// Обработчик нажатия кнопки "Назад в общий чат"
 backToPublicChatButton.addEventListener('click', () => {
     if (!username) return;
 
-    privateChatContainer.style.display = 'none';
-    chatContainer.style.display = 'block';
-    currentRecipient = null;
-    privateMessagesContainer.innerHTML = ''; // Очищаем контейнер личных сообщений
+    currentRecipient = null; // Сброс текущего получателя
 });
 
+// Очистка истории публичного чата
 clearMessagesButton.addEventListener('click', async () => {
     if (confirm('Вы уверены, что хотите очистить историю чата?')) {
         try {
-            const response = await fetch('/clear-public-messages', {
+            const response = await fetch('/clear-public-messages', { // Отправка запроса на сервер
                 method: 'POST',
                 credentials: 'include',
             });
@@ -472,23 +539,23 @@ clearMessagesButton.addEventListener('click', async () => {
                 throw new Error(errorText);
             }
 
-            messagesContainer.innerHTML = '';
-            displayedPublicMessages.clear();
+            messagesContainer.innerHTML = ''; // Очистка контейнера сообщений
+            displayedPublicMessages.clear(); // Очистка Set публичных сообщений
 
-            alert('История чата успешно очищена');
+            alert('История чата успешно очищена'); // Отображение сообщения
         } catch (error) {
             console.error('Ошибка при очистке истории чата:', error);
-            alert(`Ошибка при очистке истории чата: ${error.message}`);
+            alert(`Ошибка при очистке истории чата: ${error.message}`); // Отображение сообщения об ошибке
         }
     }
 });
 
-if (clearPrivateMessagesButton) { // Добавлена проверка на существование элемента
+// Очистка истории личного чата
+if (clearPrivateMessagesButton) {
     clearPrivateMessagesButton.addEventListener('click', () => {
         if (confirm('Вы уверены, что хотите очистить историю личного чата?')) {
-            privateMessagesContainer.innerHTML = '';
-            // displayedPrivateMessages.delete(currentRecipient); // Удалять историю для конкретного собеседника небезопасно
-            displayedPrivateMessages.clear();
+            messagesContainer.innerHTML = ''; // Очистка контейнера сообщений
+            displayedPrivateMessages.clear(); // Очистка Map личных сообщений
         }
     });
 }
@@ -496,6 +563,6 @@ if (clearPrivateMessagesButton) { // Добавлена проверка на с
 // При загрузке страницы открываем общий чат по умолчанию
 window.onload = () => {
     if (chatContainer.style.display === 'block') {
-        openChat('public');
+        openChat('public'); // Открытие общего чата
     }
 };
