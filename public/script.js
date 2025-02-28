@@ -207,6 +207,7 @@ loginForm.addEventListener('submit', async (e) => {
         alert(result); // Отображение сообщения от сервера
 
         if (response.ok) {
+            console.log("Авторизация успешна. Имя пользователя:", username);
             setTimeout(() => location.reload(), 500); // Перезагрузка страницы после входа
         }
     } catch (error) {
@@ -350,6 +351,7 @@ function openChat(chatType) {
 
         messagesContainer.innerHTML = ''; // Очистка контейнера сообщений
         fetchPublicMessages().then((messages) => {
+            displayedPublicMessages.clear(); // Очистка Set отображенных сообщений
             messages.forEach(addPublicMessage); // Добавление публичных сообщений на страницу
         });
 
@@ -361,12 +363,12 @@ function openChat(chatType) {
 async function fetchPublicMessages() {
     try {
         const response = await fetch('/get-public-messages', { credentials: 'include' }); // Отправка запроса на сервер
-        if (!response.ok) {
+       if (!response.ok) {
             const errorText = await response.text();
             throw new Error(errorText);
         }
-
         const data = await response.json(); // Получение данных из ответа
+        console.log("Данные, полученные из /get-public-messages:", data);
         displayedPublicMessages.clear(); // Очистка Set публичных сообщений
         return data.messages; // Возвращение массива сообщений
     } catch (error) {

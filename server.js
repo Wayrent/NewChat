@@ -50,28 +50,57 @@ app.use(express.static('public'));
 
 // Функции для запросов в БД
 async function getPublicMessages() {
-    const result = await pool.query('SELECT * FROM messages ORDER BY created_at ASC');
-    return result.rows.map(row => ({
-        id: row.id,
-        username: row.user_id,
-        text: row.text,
-        createdAt: result.rows[0].created_at.toISOString()
-    }));
+    try {
+        const query = `
+            SELECT messages.id, messages.text, messages.created_at, users.username
+            FROM messages
+            LEFT JOIN users ON messages.user_id = users.id
+            ORDER BY created_at ASC
+        `;
+        console.log("SQL запрос getPublicMessages:", query);
+        const result = await pool.query(query);
+        console.log("Результат запроса getPublicMessages:", result.rows);
+
+        const messages = result.rows.map(row => {
+            const createdAt = row.created_at ? new Date(row.created_at).toISOString() : null;
+            return {
+                id: row.id,
+                username: row.username,
+                text: row.text,
+                createdAt: createdAt
+            };
+        });
+
+        return messages;
+    } catch (error) {
+        console.error('Ошибка при получении публичных сообщений:', error);
+        return [];
+    }
 }
 
 async function getPrivateMessages(user1, user2) {
-    const result = await pool.query(`
-        SELECT * FROM private_messages
-        WHERE (sender = $1 AND recipient = $2) OR (sender = $2 AND recipient = $1)
-        ORDER BY created_at ASC
-    `, [user1, user2]);
-    return result.rows.map(row => ({
-        id: row.id,
-        sender: row.sender,
-        recipient: row.recipient,
-        text: row.text,
-        createdAt: result.rows[0].created_at.toISOString()
-    }));
+    try {
+        const query = `
+            SELECT * FROM private_messages
+            WHERE (sender = $1 AND recipient = $2) OR (sender = $2 AND recipient = $1)
+            ORDER BY created_at ASC
+        `;
+
+        console.log("SQL запрос getPrivateMessages:", query, user1, user2);
+        const result = await pool.query(query, [user1, user2]);
+        console.log("Результат запроса getPrivateMessages:", result.rows);
+
+        return result.rows.map(row => ({
+            id: row.id,
+            sender: row.sender,
+            recipient: row.recipient,
+            text: row.text,
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
+        }));
+    } catch (error) {
+        console.error('Ошибка при получении личных сообщений:', error);
+        return [];
+    }
 }
 
 async function verifyPassword(password, hash) {
@@ -204,37 +233,51 @@ app.post('/get-private-messages', async (req, res) => {
     }
 
     try {
-        const result = await pool.query(`
+        const query = `
             SELECT * FROM private_messages
             WHERE (sender = $1 AND recipient = $2) OR (sender = $2 AND recipient = $1)
             ORDER BY created_at ASC
-        `, [sender, recipient]);
-
-        res.json({ messages: result.rows.map(row => ({
+        `;
+        console.log("SQL запрос getPrivateMessages:", query, sender, recipient);
+        const result = await pool.query(query, [sender, recipient]);
+        console.log("Результат запроса getPrivateMessages:", result.rows);
+        return res.json({ messages: result.rows.map(row => ({
             id: row.id,
             sender: row.sender,
             recipient: row.recipient,
             text: row.text,
-            createdAt: result.rows[0].created_at.toISOString()
+            createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
         })) });
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Ошибка сервера');
+        console.error('Ошибка при получении личных сообщений:', err);
+        return res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
 app.get('/get-public-messages', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM messages ORDER BY created_at ASC');
-        res.json({ messages: result.rows.map(row => ({
-            id: row.id,
-            username: row.user_id,
-            text: row.text,
-            createdAt: result.rows[0].created_at.toISOString()
-        })) });
+        const query = `
+            SELECT messages.id, messages.text, messages.created_at, users.username
+            FROM messages
+            LEFT JOIN users ON messages.user_id = users.id
+            ORDER BY created_at ASC
+        `;
+        console.log("SQL запрос getPublicMessages:", query);
+        const result = await pool.query(query);
+        console.log("Результат запроса getPublicMessages:", result.rows);
+        const messages = result.rows.map(row => {
+            const createdAt = row.created_at ? new Date(row.created_at).toISOString() : null;
+            return {
+                id: row.id,
+                username: row.username,
+                text: row.text,
+                createdAt: createdAt
+            };
+        });
+        return res.json({ messages: messages });
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Ошибка сервера');
+        console.error('Ошибка при получении публичных сообщений:', err);
+        return res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
@@ -299,39 +342,39 @@ io.use((socket, next) => {
         });
     } else {
         console.log('Cookies отсутствуют.');
-        return next(new Error('Cookies отсутствуют.'));
+        return next(new Error('Неавторизованный'));
     }
 });
 
 io.on('connection', async (socket) => {
     const username = socket.username;
+    const userId = socket.request.session.user.id;
 
-    console.log(`Пользователь ${username} подключился к чату через WebSocket`);
+    console.log(`Пользователь ${username} (ID: ${userId}) подключился к чату через WebSocket`);
 
     const publicMessages = await getPublicMessages();
-    socket.emit('previousMessages', publicMessages);
+    socket.emit('previousMessages', publicMessages); // Исправлено
 
     socket.broadcast.emit('userJoined', { username, message: `${username} присоединился к чату` });
 
     socket.on('sendMessage', async (data) => {
-        const username = socket.username;
         const message = { username: username, text: data };
-    
+
         if (!message.username) {
             console.error('Имя пользователя отсутствует при отправке публичного сообщения');
             return;
         }
-    
+
         try {
             const result = await pool.query(
                 'INSERT INTO messages (user_id, text) VALUES ($1, $2) RETURNING id, created_at',
-                [message.username, message.text]
+                [userId, message.text]
             );
-    
+
             if (result.rows.length > 0) {
                 const messageId = result.rows[0].id;
                 const createdAt = result.rows[0].created_at.toISOString();
-    
+
                 io.emit('receiveMessage', { id: messageId, username: username, text: data, createdAt });
             } else {
                 console.error('Сообщение не было добавлено в базу данных');
@@ -340,25 +383,25 @@ io.on('connection', async (socket) => {
             console.error('Ошибка при добавлении публичного сообщения:', error);
         }
     });
-    
+
     socket.on('sendPrivateMessage', async ({ recipient, text }) => {
         const sender = socket.username;
-    
+
         if (!sender || !recipient || !text) {
             console.error('Некорректные данные для личного сообщения:', { sender, recipient, text });
             return;
         }
-    
+
         try {
             const result = await pool.query(
                 'INSERT INTO private_messages (sender, recipient, text) VALUES ($1, $2, $3) RETURNING id, created_at',
                 [sender, recipient, text]
             );
-    
+
             if (result.rows.length > 0) {
                 const messageId = result.rows[0].id;
                 const createdAt = result.rows[0].created_at.toISOString();
-    
+
                 io.emit('receivePrivateMessage', { id: messageId, sender: sender, recipient, text, createdAt });
             } else {
                 console.error('Сообщение не было добавлено в базу данных');
