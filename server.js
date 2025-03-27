@@ -469,6 +469,8 @@ io.on('connection', async (socket) => {
 
     console.log(`Пользователь ${username} (ID: ${userId}) подключился к чату через WebSocket`);
 
+    socket.join(username); // Присоединяем пользователя к комнате с его именем
+
     try {
         const publicMessages = await getPublicMessages();
         socket.emit('previousMessages', publicMessages);
@@ -530,9 +532,9 @@ io.on('connection', async (socket) => {
                 const messageId = result.rows[0].id;
                 const createdAt = result.rows[0].created_at.toISOString();
 
-                // Отправляем сообщение обоим пользователям (отправителю и получателю)
-                io.to(socket.id).emit('receivePrivateMessage', { id: messageId, sender: senderUsername, recipient, text, createdAt }); // Отправляем отправителю
-                //Надо будет отправлять всем пользователям, находящимся онлайн (сейчас только себе сообщение отправляет)
+                // Отправляем сообщение обоим пользователям
+                io.to(socket.username).emit('receivePrivateMessage', { id: messageId, sender: senderUsername, recipient, text, createdAt }); // Отправляем отправителю
+                io.to(recipient).emit('receivePrivateMessage', { id: messageId, sender: senderUsername, recipient, text, createdAt }); // Отправляем получателю
             } else {
                 console.error('Сообщение не было добавлено в базу данных');
             }

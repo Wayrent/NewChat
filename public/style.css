@@ -52,12 +52,12 @@ body {
 
 /* Основная кнопка (синяя) */
 .auth-container .primary-button {
-    background-color: #773bb8; /* Ваш выбранный цвет */
+    background-color: #773bb8;
     color: white;
 }
 
 .auth-container .primary-button:hover {
-    background-color: #623096; /* Более тёмный цвет при наведении */
+    background-color: #623096;
 }
 
 /* Вспомогательная кнопка (серая) */
@@ -130,8 +130,8 @@ body {
 /* Строка поиска */
 .search-container {
     margin-bottom: 10px;
-    display: flex; /* Добавляем flex-контейнер для выравнивания */
-    align-items: center; /* Выравниваем элементы по вертикали */
+    display: flex;
+    align-items: center;
 }
 
 #search-input {
@@ -140,8 +140,8 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px 0 0 5px;
     box-sizing: border-box;
-    padding-right: 40px; /* Adjust for the search icon */
-    border-right: none; /* Убираем правую границу у поля ввода */
+    padding-right: 40px;
+    border-right: none; 
 }
 
 #search-button {
