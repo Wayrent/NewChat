@@ -16,7 +16,7 @@ function showPage(page) {
     DOM.registerContainer.style.display = 'none';
     DOM.loginContainer.style.display = 'none';
     DOM.chatContainer.style.display = 'none';
-    DOM.privateChatContainer.style.display = 'none';
+    //DOM.privateChatContainer.style.display = 'none'; // УДАЛИТЕ ЭТУ СТРОКУ
 
     switch (page) {
         case 'register':
@@ -28,9 +28,9 @@ function showPage(page) {
         case 'chat':
             DOM.chatContainer.style.display = 'block';
             break;
-        case 'privateChat':
-            DOM.privateChatContainer.style.display = 'block';
-            break;
+        //case 'privateChat': // УДАЛИТЕ ЭТОТ CASE
+        //    DOM.privateChatContainer.style.display = 'block';
+        //    break;
     }
 }
 
@@ -84,7 +84,7 @@ function initChat() {
 }
 
 // ===========================================================================
-// Функции для работы с сообщениями (можно переместить в handlers.js при необходимости)
+// Функции для работы с сообщениями
 // ===========================================================================
 
 function addPublicMessage(message) {
@@ -118,12 +118,12 @@ function addPrivateMessage(message) {
 
     const messageElement = document.createElement('div');
     messageElement.textContent = `${message.sender}: ${message.text}`;
-    DOM.privateMessages.appendChild(messageElement);
-    DOM.privateMessages.scrollTop = DOM.privateMessages.scrollHeight;
+    DOM.messagesContainer.appendChild(messageElement); //  Отображаем в основном контейнере
+    DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
 }
 
 // ===========================================================================
-// Функции для работы с чатами (можно переместить в handlers.js при необходимости)
+// Функции для работы с чатами
 // ===========================================================================
 
 async function loadConversations() {
@@ -164,18 +164,45 @@ function openChat(chatType) {
     currentRecipient = null;
 
     DOM.messagesContainer.innerHTML = '';
-
+    // Загружаем публичные сообщения
+    socket.emit('getPreviousMessages');
     showPage('chat');
 }
 
-function openPrivateChat(recipient) {
+async function openPrivateChat(recipient) {
     currentChatType = 'private';
     currentRecipient = recipient;
 
-    DOM.privateMessages.innerHTML = '';
-    DOM.recipientName.textContent = `Собеседник: ${recipient}`;
+    DOM.messagesContainer.innerHTML = '';
+    //DOM.recipientName.textContent = `Собеседник: ${recipient}`; //  Удаляем, т.к. нет отд. окна
 
-    showPage('privateChat');
+    //showPage('chat');
+    // Загружаем личные сообщения
+    await fetchPrivateMessages(username, recipient);
+}
+
+async function fetchPrivateMessages(sender, recipient) {
+    try {
+        const response = await fetch('/get-private-messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender, recipient }),
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText);
+        }
+
+        const data = await response.json();
+        // Отображаем личные сообщения
+        DOM.messagesContainer.innerHTML = ''; // Очищаем контейнер
+        data.messages.forEach(message => addPrivateMessage(message));
+
+    } catch (error) {
+        console.error('Ошибка при загрузке личных сообщений:', error);
+    }
 }
 
 // ===========================================================================
@@ -195,8 +222,5 @@ export {
     conversationsLoaded,
     loadConversations,
     openChat,
-    openPrivateChat,
-    addPublicMessage,
-    addSystemMessage,
-    addPrivateMessage
+    openPrivateChat
 };
