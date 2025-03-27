@@ -71,7 +71,7 @@ class PGStore extends Store {
         }
     }
 }
-
+//Тутъ
 // Инициализация Express приложения
 const app = express();
 const server = http.createServer(app);
@@ -112,6 +112,7 @@ app.use(express.static('public'));
 // Функции для запросов в БД
 async function getPublicMessages() {
     try {
+        console.log('[getPublicMessages] Запрос на получение публичных сообщений'); //  <--- ЛОГИРОВАНИЕ
         const result = await pool.query(`
             SELECT m.id, u.username, m.text, m.created_at
             FROM messages m
@@ -119,12 +120,14 @@ async function getPublicMessages() {
             ORDER BY m.created_at ASC
         `);
 
-        return result.rows.map(row => ({
+        const messages = result.rows.map(row => ({
             id: row.id,
             username: row.username,
             text: row.text,
             createdAt: row.created_at.toISOString()
         }));
+        console.log('[getPublicMessages] Возвращаем сообщения:', messages); //  <--- ЛОГИРОВАНИЕ
+        return messages;
     } catch (error) {
         console.error("Ошибка при получении публичных сообщений:", error);
         throw error; // Пробрасываем ошибку для обработки выше
@@ -473,6 +476,7 @@ io.on('connection', async (socket) => {
 
     try {
         const publicMessages = await getPublicMessages();
+        console.log('[socket.on:connection] Отправляем предыдущие сообщения:', publicMessages); //  <--- ЛОГИРОВАНИЕ
         socket.emit('previousMessages', publicMessages);
     } catch (error) {
         console.error("Ошибка при получении предыдущих сообщений:", error);
@@ -480,27 +484,14 @@ io.on('connection', async (socket) => {
 
     socket.broadcast.emit('userJoined', { username, message: `${username} присоединился к чату` });
 
-    socket.on('sendMessage', async (data) => {
-        if (!username) {
-            console.error('Имя пользователя отсутствует при отправке публичного сообщения');
-            return;
-        }
-
+    socket.on('requestPublicMessages', async () => { //  <--- ОБРАБАТЫВАЕМ СОБЫТИЕ
+        console.log(`[socket.on:requestPublicMessages] Пользователь ${socket.username} запросил публичные сообщения`);
         try {
-            const result = await pool.query(
-                'INSERT INTO messages (user_id, text) VALUES ($1, $2) RETURNING id, created_at',
-                [userId, data]
-            );
-
-            if (result.rows.length > 0) {
-                const messageId = result.rows[0].id;
-                const createdAt = result.rows[0].created_at.toISOString();
-                io.emit('receiveMessage', { id: messageId, username: username, text: data, createdAt });
-            } else {
-                console.error('Сообщение не было добавлено в базу данных');
-            }
+            const publicMessages = await getPublicMessages();
+            console.log('[socket.on:requestPublicMessages] Отправляем предыдущие сообщения:', publicMessages);
+            socket.emit('previousMessages', publicMessages);
         } catch (error) {
-            console.error('Ошибка при добавлении публичного сообщения:', error);
+            console.error("Ошибка при получении предыдущих сообщений:", error);
         }
     });
 
@@ -542,7 +533,34 @@ io.on('connection', async (socket) => {
             console.error('Ошибка при добавлении личного сообщения:', error);
         }
     });
+    socket.on('sendMessage', async (data) => {
+        if (!username) {
+            console.error('Имя пользователя отсутствует при отправке публичного сообщения');
+            return;
+        }
 
+        console.log(`[socket.on:sendMessage] Получено публичное сообщение от ${username}: ${data}`); //  <--- ЛОГИРОВАНИЕ
+
+        try {
+            const result = await pool.query(
+                'INSERT INTO messages (user_id, text) VALUES ($1, $2) RETURNING id, created_at',
+                [userId, data]
+            );
+
+            if (result.rows.length > 0) {
+                const messageId = result.rows[0].id;
+                const createdAt = result.rows[0].created_at.toISOString();
+                console.log(`[socket.on:sendMessage] Сообщение успешно добавлено в БД, ID: ${messageId}`); //  <--- ЛОГИРОВАНИЕ
+                io.emit('receiveMessage', { id: messageId, username: username, text: data, createdAt });
+                console.log(`[socket.on:sendMessage] Отправлено сообщение всем клиентам`); //  <--- ЛОГИРОВАНИЕ
+            } else {
+                console.error('Сообщение не было добавлено в базу данных');
+            }
+        } catch (error) {
+            console.error('Ошибка при добавлении публичного сообщения:', error);
+        }
+    });
+    
     socket.on('disconnect', () => {
         if (socket.username) {
             console.log(`Пользователь ${socket.username} покинул чат`);

@@ -75,20 +75,18 @@ async function handleLogout() {
 
 // Обработчик отправки сообщений
 function handleMessageSubmit(e) {
-    e.preventDefault();
-    const message = DOM.messageInput.value.trim();
-    if (message !== '') {
-        if (!Core.socket || !Core.username) {
-            alert('Вы не авторизованы');
-            return;
-        }
+    e.preventDefault(); //  <--- ДОБАВЛЕНО: Предотвращаем перезагрузку страницы
+    const messageText = DOM.messageInput.value.trim();
+    console.log('[handleMessageSubmit] Вызвана, messageText:', messageText); //  <--- ЛОГИРОВАНИЕ
 
+    if (messageText) {
         if (Core.currentChatType === 'public') {
-            Core.socket.emit('sendMessage', message);
-        } else {
-            Core.socket.emit('sendPrivateMessage', { recipient: Core.currentRecipient, text: message });
+            console.log('[handleMessageSubmit] Отправляем публичное сообщение'); //  <--- ЛОГИРОВАНИЕ
+            Core.socket.emit('sendMessage', messageText);
+        } else if (Core.currentChatType === 'private' && Core.currentRecipient) {
+            console.log('[handleMessageSubmit] Отправляем личное сообщение, recipient:', Core.currentRecipient); //  <--- ЛОГИРОВАНИЕ
+            Core.socket.emit('sendPrivateMessage', { recipient: Core.currentRecipient, text: messageText });
         }
-
         DOM.messageInput.value = '';
     }
 }
